@@ -1,0 +1,454 @@
+version: "3.9"
+
+########################### NETWORKS
+networks:
+  default:
+    driver: bridge
+  npm_proxy:
+    name: npm_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.89.0/24
+
+########################### EXTENSION FIELDS
+# Helps eliminate repetition of sections
+ 
+# Common environment values
+x-environment: &default-tz-puid-pgid
+  TZ: $TZ
+  PUID: $PUID
+  PGID: $PGID
+ 
+# Keys common to some of the core services that we always to automatically restart on failure
+x-common-keys-core: &common-keys-core
+  networks:
+    - npm_proxy
+  security_opt:
+    - no-new-privileges:true
+  restart: always
+ 
+# Keys common to some of the dependent services/apps
+x-common-keys-apps: &common-keys-apps
+  networks:
+    - npm_proxy
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+ 
+# Keys common to some of the services in media-services.txt
+x-common-keys-media: &common-keys-media
+  networks:
+    - npm_proxy
+  security_opt:
+    - no-new-privileges:true
+  restart: "no"
+
+########################### SERVICES
+services:
+  ############################# FRONTENDS
+
+  # Nginx Proxy Manager - Reverse Proxy with LetsEncrypt
+  npm:
+    <<: *common-keys-core
+    container_name: nginx-proxy-manager
+    image: 'jc21/nginx-proxy-manager:latest'
+    networks:
+      npm_proxy:
+        ipv4_address: 192.168.89.254
+    ports:
+      - '80:80'
+      - '443:443'
+      - '81:81'
+    volumes:
+      - $DOCKERDIR/appdata/npm/config:/config 
+      - $DOCKERDIR/appdata/npm/letsencrypt:/etc/letsencrypt
+      - $DOCKERDIR/appdata/npm/data:/data
+    environment:
+      DB_SQLITE_FILE: "/config/database.sqlite"
+      DISABLE_IPV6: 'true'
+    labels:
+      - flame.type=app
+      - flame.name=nginx proxy manager
+      - flame.url=https://npm.$DOMAIN
+      - flame.icon=arrow-decision
+
+  # Portainer - WebUI for Containers
+  portainer:
+    <<: *common-keys-core
+    container_name: portainer
+    image: portainer/portainer-ce:latest
+    command: -H unix:///var/run/docker.sock
+    networks:
+      - npm_proxy
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - $DOCKERDIR/appdata/portainer/data:/data
+    environment:
+      - TZ=$TZ
+    labels:
+      - flame.type=app
+      - flame.name=portainer
+      - flame.url=portainer.$DOMAIN
+      - flame.icon=truck-cargo-container
+
+  # Heimdall - UI with all running applications
+  heimdall:
+    <<: *common-keys-core
+    image: lscr.io/linuxserver/heimdall:latest
+    container_name: heimdall
+    environment:
+      <<: *default-tz-puid-pgid
+    volumes:
+      - $DOCKERDIR/appdata/heimdall/config:/config
+    ports:
+      - 82:80
+      - 450:443
+    restart: unless-stopped
+
+  # Flame - UI with all running applications
+  flame:
+    <<: *common-keys-core
+    image: pawelmalak/flame:latest
+    container_name: flame
+    volumes:
+      - $DOCKERDIR/appdata/flame/:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock # optional but required for Docker integration feature
+    ports:
+      - 5005:5005
+    environment:
+      - PASSWORD=${FLAME_PASSWORD}
+    restart: unless-stopped
+
+  ############################# DOWNLOADERS
+
+  # sabnzbd - Binary newsgrabber (NZB downloader)
+  sabnzbd:
+    <<: *common-keys-apps
+    image: lscr.io/linuxserver/sabnzbd
+    container_name: sabnzbd
+    networks:
+      npm_proxy:
+        ipv4_address: 192.168.89.216
+    ports:
+      - "6789:6789"
+    volumes:
+      - $DOCKERDIR/appdata/sabnzbd:/config
+      - $DATADIR/downloads:/data/downloads
+    environment:
+      <<: *default-tz-puid-pgid
+      HAS_IPV6: false
+    labels:
+      - flame.type=app
+      - flame.name=sabnzbd
+      - flame.url=sabnzbd.$DOMAIN
+      - flame.icon=cloud-download
+
+  # TransmissionBT - Torrent Downloader
+  transmission-vpn:
+    image: haugene/transmission-openvpn:latest
+    container_name: transmission-vpn
+    restart: unless-stopped
+    networks:
+      npm_proxy:
+        ipv4_address: 192.168.89.169
+    ports:
+      - "9091:9091"
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - $DOCKERDIR/appdata/transmission-vpn/data:/data
+      - $DOCKERDIR/appdata/transmission-vpn/config:/config
+      - $DATADIR/downloads:/data/downloads
+    environment:
+      <<: *default-tz-puid-pgid
+      OPENVPN_PROVIDER: PIA
+      OPENVPN_USERNAME: $PIA_USERNAME
+      OPENVPN_PASSWORD: $PIA_PASSWORD
+      LOCAL_NETWORK: "$LOCAL_NETWORK"
+      UMASK_SET: 2
+      TRANSMISSION_RPC_AUTHENTICATION_REQUIRED: "true"
+      TRANSMISSION_RPC_HOST_WHITELIST: "127.0.0.1,$SERVER_IP"
+      TRANSMISSION_RPC_PASSWORD: ${TRANSMISSION_RPC_PASSWORD}
+      TRANSMISSION_RPC_USERNAME: ${TRANSMISSION_RPC_USERNAME}
+      TRANSMISSION_UMASK: 002
+      TRANSMISSION_ALT_SPEED_DOWN: 40000
+      TRANSMISSION_ALT_SPEED_ENABLED: "false"
+      TRANSMISSION_ALT_SPEED_UP: 250
+      TRANSMISSION_SPEED_LIMIT_DOWN: 80000
+      TRANSMISSION_SPEED_LIMIT_DOWN_ENABLED: "true"
+      TRANSMISSION_SPEED_LIMIT_UP: 500
+      TRANSMISSION_SPEED_LIMIT_UP_ENABLED: "true"
+      TRANSMISSION_INCOMPLETE_DIR: /data/downloads/torrents/incomplete
+      TRANSMISSION_INCOMPLETE_DIR_ENABLED: "true"
+      TRANSMISSION_WATCH_DIR: /data/downloads/torrents
+      TRANSMISSION_WATCH_DIR_ENABLED: "true"
+      TRANSMISSION_DOWNLOAD_DIR: /data/downloads/torrents
+      LOG_TO_STDOUT: "true"
+    labels:
+      - flame.type=app
+      - flame.name=transmission-vpn
+      - flame.url=transmission.$DOMAIN
+      - flame.icon=vpn
+
+  ############################# PVRS
+
+  # Radarr - Movie management
+  radarr:
+    <<: *common-keys-media
+    image: lscr.io/linuxserver/radarr
+    container_name: radarr
+    networks:
+      npm_proxy:
+        ipv4_address: 192.168.89.164
+    ports:
+      - "7878:7878"
+    volumes:
+      - $DOCKERDIR/appdata/radarr:/config
+      - $DATADIR/downloads:/data/downloads
+      - $DATADIR/media:/data/media
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      <<: *default-tz-puid-pgid
+    labels:
+      - flame.type=app
+      - flame.name=radarr
+      - flame.url=radarr.$DOMAIN
+      - flame.icon=movie-plus
+
+  # Sonarr - TV Shows management
+  sonarr:
+    <<: *common-keys-media
+    image: lscr.io/linuxserver/sonarr
+    container_name: sonarr
+    networks:
+      npm_proxy:
+        ipv4_address: 192.168.89.167
+    ports:
+      - "8989:8989"
+    volumes:
+      - $DOCKERDIR/appdata/sonarr:/config
+      - $DATADIR/downloads:/data/downloads
+      - $DATADIR/media:/data/media
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      <<: *default-tz-puid-pgid
+    labels:
+      - flame.type=app
+      - flame.name=sonarr
+      - flame.url=sonarr.$DOMAIN
+      - flame.icon=movie-plus-outline
+
+  # Prowlarr - Indexer Proxy
+  prowlarr:
+    <<: *common-keys-apps
+    image: lscr.io/linuxserver/prowlarr
+    container_name: prowlarr
+    networks:
+      npm_proxy:
+        ipv4_address: 192.168.89.162
+    ports:
+      - "9696:9696"
+    volumes:
+      - $DOCKERDIR/appdata/prowlarr:/config
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      <<: *default-tz-puid-pgid
+    labels:
+      - flame.type=app
+      - flame.name=prowlarr
+      - flame.url=prowlarr.$DOMAIN
+      - flame.icon=cloud-search
+
+  ############################# MEDIA
+  # Airsonic Advanced - Music Server
+  airsonic:
+    <<: *common-keys-media
+    image: lscr.io/linuxserver/airsonic-advanced
+    container_name: airsonic-advanced
+    ports:
+      - "4040:4040"
+      - "4041:4041" #UPnp
+    volumes:
+      - $DOCKERDIR/appdata/airsonic/podcasts:/data/podcasts
+      - $DOCKERDIR/appdata/airsonic/playlists:/data/playlists
+      - $DOCKERDIR/appdata/airsonic/config:/config
+      - $DATADIR/local/music:/data/music
+    environment:
+      <<: *default-tz-puid-pgid
+      JAVA_OPTS: '-Dserver.forward-headers-strategy=native' # Optional - if you use a reverse-proxy
+    labels:
+      - flame.type=app
+      - flame.name=airsonic
+      - flame.url=airsonic.$DOMAIN
+      - flame.icon=music
+
+  # Jellyfin - Media Server
+  jellyfin:
+    <<: *common-keys-media
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    devices:
+      - /dev/dri:/dev/dri # for harware transcoding
+    ports:
+      - "8096:8096"
+    environment:
+      <<: *default-tz-puid-pgid
+      UMASK_SET: 022
+    volumes:
+      - $DOCKERDIR/appdata/jellyfin:/config
+      - $DATADIR/temp/appdata/jellyfin/metadata:/config/metadata
+      - $DATADIR/downloads:/data/downloads
+      - $DATADIR/downloads/torrents:/data/downloads/torrents
+      - $DATADIR/media:/data/media
+      - /dev/shm:/data/transcode # Offload transcoding to RAM if you have enough RAM
+    labels:
+      - flame.type=app
+      - flame.name=jellyfin
+      - flame.url=jellyfin.$DOMAIN
+      - flame.icon=television
+
+  ############################# MEDIA FILE MANAGEMENT
+
+  # Bazarr - Subtitle Management
+  bazarr:
+    <<: *common-keys-media
+    image: lscr.io/linuxserver/bazarr
+    container_name: bazarr
+    ports:
+      - "6767:6767"
+    volumes:
+      - $DOCKERDIR/appdata/bazarr:/config
+      - $DATADIR/media:/data/media
+    environment:
+      <<: *default-tz-puid-pgid
+    labels:
+      - flame.type=app
+      - flame.name=bazarr
+      - flame.url=bazarr.$DOMAIN
+      - flame.icon=subtitles
+
+  # Ombi - Request movies/series
+  ombi:
+    <<: *common-keys-media
+    image: lscr.io/linuxserver/ombi:latest
+    container_name: ombi
+    environment:
+      <<: *default-tz-puid-pgid
+      BASE_URL: /ombi
+    volumes:
+      - $DOCKERDIR/appdata/ombi:/config
+    ports:
+      - 3579:3579
+    restart: unless-stopped
+    labels:
+      - flame.type=app
+      - flame.name=ombi
+      - flame.url=ombi.$DOMAIN
+      - flame.icon=file-question-outline
+
+  ############################# UTILITIES
+
+  # Dozzle - Real-time Docker Log Viewer
+  dozzle:
+    <<: *common-keys-apps
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    networks:
+      - npm_proxy
+    ports:
+      - "8080:8080"
+    environment:
+      DOZZLE_LEVEL: info
+      DOZZLE_TAILSIZE: 300
+      DOZZLE_FILTER: "status=running"
+      DOZZLE_USERNAME: ${DOZZLE_USERNAME}
+      DOZZLE_PASSWORD: ${DOZZLE_PASSWORD}
+      # DOZZLE_FILTER: "label=log_me" # limits logs displayed to containers with this label.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - flame.type=app
+      - flame.name=dozzle
+      - flame.url=dozzle.$DOMAIN
+      - flame.icon=bug
+
+  # Visual Studio Code
+  code-server:
+    <<: *common-keys-core
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: code-server
+    environment:
+      <<: *default-tz-puid-pgid
+      HASHED_PASSWORD: ${VSCODE_HASHED_PASSWORD}
+      SUDO_PASSWORD_HASH: ${VSCODE_SUDO_PASSWORD_HASH}
+    volumes:
+      - $DOCKERDIR/appdata/code-server:/config
+    ports:
+      - 8443:8443
+    restart: unless-stopped
+    labels:
+      - flame.type=app
+      - flame.name=vscode
+      - flame.url=vscode.$DOMAIN
+      - flame.icon=file-code
+
+  # Ad Guard Home
+  adguardhome:
+      <<: *common-keys-core
+      image: adguard/adguardhome
+      container_name: adguardhome
+      ports:
+        - 53:53/tcp
+        - 53:53/udp
+        - 784:784/udp
+        - 853:853/tcp
+        - 3000:3000/tcp
+        - 83:80/tcp
+      volumes:
+        - $DOCKERDIR/appdata/adguardhome/work:/opt/adguardhome/work
+        - $DOCKERDIR/appdata/adguardhome/conf:/opt/adguardhome/conf
+      labels:
+        - flame.type=app
+        - flame.name=adguard
+        - flame.url=adguard.$DOMAIN
+        - flame.icon=dns
+
+  # Docker-GC - Automatic Docker Garbage Collection
+  # Create docker-gc-exclude file
+  dockergc:
+    <<: *common-keys-apps
+    image: clockworksoul/docker-gc-cron:latest
+    container_name: docker-gc
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - $DOCKERDIR/appdata/docker-gc/docker-gc-exclude:/etc/docker-gc-exclude # Create empty file
+    environment:
+      CRON: 0 0 0 * * ? # Everyday at midnight. Previously 0 0 * * *
+      FORCE_IMAGE_REMOVAL: 1
+      FORCE_CONTAINER_REMOVAL: 0
+      GRACE_PERIOD_SECONDS: 604800
+      DRY_RUN: 0
+      CLEAN_UP_VOLUMES: 1
+      TZ: $TZ
+
+  # WatchTower - Automatic Docker Container Updates
+  watchtower:
+    <<: *common-keys-core
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      TZ: $TZ
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_REMOVE_VOLUMES: "true"
+      WATCHTOWER_INCLUDE_STOPPED: "true"
+      WATCHTOWER_NO_STARTUP_MESSAGE: "false"
+      WATCHTOWER_SCHEDULE: "0 30 12 * * *" # Everyday at 12:30
+      DOCKER_API_VERSION: "1.40"
