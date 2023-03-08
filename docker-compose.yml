@@ -264,6 +264,30 @@ services:
       - flame.name=prowlarr
       - flame.url=prowlarr.$DOMAIN
       - flame.icon=cloud-search
+  
+  # More indexing, specialised for dutch content
+  spotweb:
+    <<: *common-keys-apps
+    image: jgeusebroek/spotweb
+    container_name: spotweb
+    networks:
+      npm_proxy:
+        ipv4_address: 192.168.89.163
+    environment:
+      <<: *default-tz-puid-pgid
+      SPOTWEB_DB_TYPE: pdo_mysql
+      SPOTWEB_DB_HOST: 192.168.89.160
+      SPOTWEB_DB_PORT: 3306
+      SPOTWEB_DB_NAME: ${SPOTWEB_DB}
+      SPOTWEB_DB_USER: ${SPOTWEB_USER}
+      SPOTWEB_DB_PASS: ${SPOTWEB_PASSWORD}
+      SPOTWEB_CRON_RETRIEVE: "* */2 * * *"
+    depends_on:
+     - mariadb
+    ports:
+     - 9695:80
+    volumes:
+     - $DOCKERDIR/appdata/spotweb:/config
 
   ############################# MEDIA
   # Airsonic Advanced - Music Server
@@ -452,3 +476,22 @@ services:
       WATCHTOWER_NO_STARTUP_MESSAGE: "false"
       WATCHTOWER_SCHEDULE: "0 30 12 * * *" # Everyday at 12:30
       DOCKER_API_VERSION: "1.40"
+
+  # Database
+  mariadb:
+    <<: *common-keys-core
+    image: linuxserver/mariadb
+    container_name: mariadb
+    networks:
+      npm_proxy:
+        ipv4_address: 192.168.89.160
+    environment:
+     <<: *default-tz-puid-pgid
+     MYSQL_ROOT_PASSWORD:  ${MYSQL_PASSWORD}
+     MYSQL_DATABASE: ${SPOTWEB_DB}
+     MYSQL_USER: ${SPOTWEB_USER}
+     MYSQL_PASSWORD: ${SPOTWEB_PASSWORD}
+    volumes:
+     - $DOCKERDIR/appdata/mariadb:/config
+    ports:
+     - 3306:3306
