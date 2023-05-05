@@ -49,10 +49,11 @@ services:
   ############################# FRONTENDS
 
   # Nginx Proxy Manager - Reverse Proxy with LetsEncrypt
+  # Pinned due to this bug: https://github.com/NginxProxyManager/nginx-proxy-manager/issues/2773
   npm:
     <<: *common-keys-core
     container_name: nginx-proxy-manager
-    image: 'jc21/nginx-proxy-manager:latest'
+    image: 'jc21/nginx-proxy-manager:2.9.22'
     networks:
       npm_proxy:
         ipv4_address: 192.168.89.254
@@ -264,8 +265,10 @@ services:
       - flame.name=prowlarr
       - flame.url=prowlarr.$DOMAIN
       - flame.icon=cloud-search
-  
+
   # More indexing, specialised for dutch content
+  # Stopped working for me using env variables. Have to reconfigure
+  # after EVERY restart now. Check container documentation for instructions
   spotweb:
     <<: *common-keys-apps
     image: jgeusebroek/spotweb
@@ -275,13 +278,13 @@ services:
         ipv4_address: 192.168.89.163
     environment:
       <<: *default-tz-puid-pgid
-      SPOTWEB_DB_TYPE: pdo_mysql
-      SPOTWEB_DB_HOST: 192.168.89.160
-      SPOTWEB_DB_PORT: 3306
-      SPOTWEB_DB_NAME: ${SPOTWEB_DB}
-      SPOTWEB_DB_USER: ${SPOTWEB_USER}
-      SPOTWEB_DB_PASS: ${SPOTWEB_PASSWORD}
-      SPOTWEB_CRON_RETRIEVE: "* */2 * * *"
+      #SPOTWEB_DB_TYPE: pdo_mysql
+      #SPOTWEB_DB_HOST: 192.168.89.160
+      #SPOTWEB_DB_PORT: 3306
+      #SPOTWEB_DB_NAME: ${SPOTWEB_DB}
+      #SPOTWEB_DB_USER: ${SPOTWEB_USER}
+      #SPOTWEB_DB_PASS: ${SPOTWEB_PASSWORD}
+      #SPOTWEB_CRON_RETRIEVE: "* */2 * * *"
     depends_on:
      - mariadb
     ports:
@@ -356,6 +359,21 @@ services:
       - flame.name=bazarr
       - flame.url=bazarr.$DOMAIN
       - flame.icon=subtitles
+
+  # Use an AI model to create English subtitles. Can be translated
+  # to other languages using Google Translate
+  whisper:
+    <<: *common-keys-media
+    image: onerahmet/openai-whisper-asr-webservice
+    container_name: whisper
+    ports:
+      - "8000:9000"
+    volumes:
+      - $DOCKERDIR/appdata/whisper/cache-whisper:/root/.cache/whisper
+      - $DOCKERDIR/appdata/whisper/cache-faster-whisper:/root/.cache/faster_whisper
+    environment:
+      <<: *default-tz-puid-pgid
+      ASR_MODEL: base
 
   # Ombi - Request movies/series
   ombi:
