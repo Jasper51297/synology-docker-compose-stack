@@ -283,13 +283,13 @@ services:
         ipv4_address: 192.168.89.163
     environment:
       <<: *default-tz-puid-pgid
-      #SPOTWEB_DB_TYPE: pdo_mysql
-      #SPOTWEB_DB_HOST: 192.168.89.160
-      #SPOTWEB_DB_PORT: 3306
-      #SPOTWEB_DB_NAME: ${SPOTWEB_DB}
-      #SPOTWEB_DB_USER: ${SPOTWEB_USER}
-      #SPOTWEB_DB_PASS: ${SPOTWEB_PASSWORD}
-      #SPOTWEB_CRON_RETRIEVE: "* */2 * * *"
+      SPOTWEB_DB_TYPE: pdo_mysql
+      SPOTWEB_DB_HOST: 192.168.89.160
+      SPOTWEB_DB_PORT: 3306
+      SPOTWEB_DB_NAME: ${SPOTWEB_DB}
+      SPOTWEB_DB_USER: ${SPOTWEB_USER}
+      SPOTWEB_DB_PASS: ${SPOTWEB_PASSWORD}
+      SPOTWEB_CRON_RETRIEVE: "* */2 * * *"
     depends_on:
      - mariadb
     ports:
