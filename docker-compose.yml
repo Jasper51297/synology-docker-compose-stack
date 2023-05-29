@@ -52,7 +52,7 @@ services:
   npm:
     <<: *common-keys-core
     container_name: nginx-proxy-manager
-    image: 'jc21/nginx-proxy-manager:latest'
+    image: 'jc21/nginx-proxy-manager:2.9.20'
     networks:
       npm_proxy:
         ipv4_address: 192.168.89.254
@@ -93,20 +93,6 @@ services:
       - flame.name=portainer
       - flame.url=portainer.$DOMAIN
       - flame.icon=truck-cargo-container
-
-  # Heimdall - UI with all running applications
-  heimdall:
-    <<: *common-keys-core
-    image: lscr.io/linuxserver/heimdall:latest
-    container_name: heimdall
-    environment:
-      <<: *default-tz-puid-pgid
-    volumes:
-      - $DOCKERDIR/appdata/heimdall/config:/config
-    ports:
-      - 82:80
-      - 450:443
-    restart: unless-stopped
 
   # Flame - UI with all running applications
   flame:
@@ -244,6 +230,25 @@ services:
       - flame.url=sonarr.$DOMAIN
       - flame.icon=movie-plus-outline
 
+  # Readarr - Book management
+  readarr:
+    <<: *common-keys-media
+    image: lscr.io/linuxserver/readarr:develop
+    container_name: readarr
+    environment:
+      <<: *default-tz-puid-pgid
+    volumes:
+      - $DOCKERDIR/appdata/readarr:/config
+      - $DATADIR/downloads:/data/downloads
+      - $DATADIR/media:/data/media
+    ports:
+      - 5757:8787
+    labels:
+      - flame.type=app
+      - flame.name=sonarr
+      - flame.url=sonarr.$DOMAIN
+      - flame.icon=bookshelf
+
   # Prowlarr - Indexer Proxy
   prowlarr:
     <<: *common-keys-apps
@@ -264,7 +269,7 @@ services:
       - flame.name=prowlarr
       - flame.url=prowlarr.$DOMAIN
       - flame.icon=cloud-search
-  
+
   # More indexing, specialised for dutch content
   spotweb:
     <<: *common-keys-apps
@@ -286,8 +291,6 @@ services:
      - mariadb
     ports:
      - 9695:80
-    volumes:
-     - $DOCKERDIR/appdata/spotweb:/config
 
   ############################# MEDIA
   # Airsonic Advanced - Music Server
@@ -331,6 +334,7 @@ services:
       - $DATADIR/downloads/torrents:/data/downloads/torrents
       - $DATADIR/media:/data/media
       - /dev/shm:/data/transcode # Offload transcoding to RAM if you have enough RAM
+      - $DOCKERDIR/appdata/jellyfin-web-interface/dist:/jellyfin/jellyfin-web:ro # Only add this if you are using the intro skipper plugin. Instructions can be found in their Github repo
     labels:
       - flame.type=app
       - flame.name=jellyfin
@@ -356,6 +360,19 @@ services:
       - flame.name=bazarr
       - flame.url=bazarr.$DOMAIN
       - flame.icon=subtitles
+
+  whisper:
+    <<: *common-keys-media
+    image: onerahmet/openai-whisper-asr-webservice
+    container_name: whisper
+    ports:
+      - "8000:9000"
+    volumes:
+      - $DOCKERDIR/appdata/whisper/cache-whisper:/root/.cache/whisper
+      - $DOCKERDIR/appdata/whisper/cache-faster-whisper:/root/.cache/faster_whisper
+    environment:
+      <<: *default-tz-puid-pgid
+      ASR_MODEL: base
 
   # Ombi - Request movies/series
   ombi:
