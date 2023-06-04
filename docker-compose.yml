@@ -58,7 +58,7 @@ services:
       npm_proxy:
         ipv4_address: 192.168.89.254
     ports:
-      - '80:80'
+      - '79:80'
       - '443:443'
       - '81:81'
     volumes:
@@ -73,6 +73,47 @@ services:
       - flame.name=nginx proxy manager
       - flame.url=https://npm.$DOMAIN
       - flame.icon=arrow-decision
+
+  # Metabase Dashboard crowdsec info
+  dashboard:
+    <<: *common-keys-apps
+    container_name: metabase
+    image: metabase/metabase
+    ports:
+      - 4000:3000
+    environment:
+      MB_DB_FILE: /data/metabase.db
+      MUID: $PUID
+      MGID: 101
+      <<: *default-tz-puid-pgid
+    depends_on:
+      - 'crowdsec'
+    volumes:
+      - $DOCKERDIR/appdata/metabase:/data
+    labels:
+      - flame.type=app
+      - flame.name=metabase
+      - flame.url=https://metabase.$DOMAIN
+      - flame.icon=monitoring
+
+  homeassistant:
+    image: lscr.io/linuxserver/homeassistant:latest
+    container_name: homeassistant
+    network_mode: host
+    environment:
+      <<: *default-tz-puid-pgid
+    volumes:
+      - $DOCKERDIR/appdata/homeassistant:/config
+    # ports: # Disabled in network_mode host
+    #   - 8123:8123
+    security_opt:
+    - no-new-privileges:true
+    restart: always
+    labels:
+      - flame.type=app
+      - flame.name=homeassistant
+      - flame.url=https://homeassistant.$DOMAIN
+      - flame.icon=home
 
   # Portainer - WebUI for Containers
   portainer:
@@ -123,7 +164,7 @@ services:
       - "6789:6789"
     volumes:
       - $DOCKERDIR/appdata/sabnzbd:/config
-      - $DATADIR/downloads:/data/downloads
+      - $DATADIR/storage/downloads:/data/downloads
     environment:
       <<: *default-tz-puid-pgid
       HAS_IPV6: false
@@ -151,7 +192,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - $DOCKERDIR/appdata/transmission-vpn/data:/data
       - $DOCKERDIR/appdata/transmission-vpn/config:/config
-      - $DATADIR/downloads:/data/downloads
+      - $DATADIR/storage/downloads:/data/downloads
     environment:
       <<: *default-tz-puid-pgid
       OPENVPN_PROVIDER: PIA
@@ -197,8 +238,8 @@ services:
       - "7878:7878"
     volumes:
       - $DOCKERDIR/appdata/radarr:/config
-      - $DATADIR/downloads:/data/downloads
-      - $DATADIR/media:/data/media
+      - $DATADIR/storage/downloads:/data/downloads
+      - $DATADIR/storage/media:/data/media
       - "/etc/localtime:/etc/localtime:ro"
     environment:
       <<: *default-tz-puid-pgid
@@ -220,8 +261,8 @@ services:
       - "8989:8989"
     volumes:
       - $DOCKERDIR/appdata/sonarr:/config
-      - $DATADIR/downloads:/data/downloads
-      - $DATADIR/media:/data/media
+      - $DATADIR/storage/downloads:/data/downloads
+      - $DATADIR/storage/media:/data/media
       - "/etc/localtime:/etc/localtime:ro"
     environment:
       <<: *default-tz-puid-pgid
@@ -240,8 +281,8 @@ services:
       <<: *default-tz-puid-pgid
     volumes:
       - $DOCKERDIR/appdata/readarr:/config
-      - $DATADIR/downloads:/data/downloads
-      - $DATADIR/media:/data/media
+      - $DATADIR/storage/downloads:/data/downloads
+      - $DATADIR/storage/media:/data/media
     ports:
       - 5757:8787
     labels:
@@ -294,6 +335,11 @@ services:
      - mariadb
     ports:
      - 9695:80
+    labels:
+    - flame.type=app
+    - flame.name=spotweb
+    - flame.url=spotweb.$DOMAIN
+    - flame.icon=cloud-search
 
   ############################# MEDIA
   # Airsonic Advanced - Music Server
@@ -308,7 +354,7 @@ services:
       - $DOCKERDIR/appdata/airsonic/podcasts:/data/podcasts
       - $DOCKERDIR/appdata/airsonic/playlists:/data/playlists
       - $DOCKERDIR/appdata/airsonic/config:/config
-      - $DATADIR/local/music:/data/music
+      - $DATADIR/storage/media/Music:/data/music
     environment:
       <<: *default-tz-puid-pgid
       JAVA_OPTS: '-Dserver.forward-headers-strategy=native' # Optional - if you use a reverse-proxy
@@ -332,10 +378,10 @@ services:
       UMASK_SET: 022
     volumes:
       - $DOCKERDIR/appdata/jellyfin:/config
-      - $DATADIR/temp/appdata/jellyfin/metadata:/config/metadata
-      - $DATADIR/downloads:/data/downloads
-      - $DATADIR/downloads/torrents:/data/downloads/torrents
-      - $DATADIR/media:/data/media
+      - $DATADIR/storage/temp/appdata/jellyfin/metadata:/config/metadata
+      - $DATADIR/storage/downloads:/data/downloads
+      - $DATADIR/storage/downloads/torrents:/data/downloads/torrents
+      - $DATADIR/storage/media:/data/media
       - /dev/shm:/data/transcode # Offload transcoding to RAM if you have enough RAM
       - $DOCKERDIR/appdata/jellyfin-web-interface/dist:/jellyfin/jellyfin-web:ro # Only add this if you are using the intro skipper plugin. Instructions can be found in their Github repo
     labels:
@@ -355,7 +401,7 @@ services:
       - "6767:6767"
     volumes:
       - $DOCKERDIR/appdata/bazarr:/config
-      - $DATADIR/media:/data/media
+      - $DATADIR/storage/media:/data/media
     environment:
       <<: *default-tz-puid-pgid
     labels:
@@ -447,24 +493,27 @@ services:
 
   # Ad Guard Home
   adguardhome:
-      <<: *common-keys-core
-      image: adguard/adguardhome
-      container_name: adguardhome
-      ports:
-        - 53:53/tcp
-        - 53:53/udp
-        - 784:784/udp
-        - 853:853/tcp
-        - 3000:3000/tcp
-        - 83:80/tcp
-      volumes:
-        - $DOCKERDIR/appdata/adguardhome/work:/opt/adguardhome/work
-        - $DOCKERDIR/appdata/adguardhome/conf:/opt/adguardhome/conf
-      labels:
-        - flame.type=app
-        - flame.name=adguard
-        - flame.url=adguard.$DOMAIN
-        - flame.icon=dns
+    image: adguard/adguardhome
+    container_name: adguardhome
+    network_mode: host
+    security_opt:
+    - no-new-privileges:true
+    restart: always
+    # ports:
+      # - 53:53/tcp
+      # - 53:53/udp
+      # - 784:784/udp
+      # - 853:853/tcp
+      # - 3000:3000/tcp
+      # - 80:80/tcp
+    volumes:
+      - $DOCKERDIR/appdata/adguardhome/work:/opt/adguardhome/work
+      - $DOCKERDIR/appdata/adguardhome/conf:/opt/adguardhome/conf
+    labels:
+      - flame.type=app
+      - flame.name=adguard
+      - flame.url=adguard.$DOMAIN
+      - flame.icon=dns
 
   # Docker-GC - Automatic Docker Garbage Collection
   # Create docker-gc-exclude file
@@ -518,3 +567,22 @@ services:
      - $DOCKERDIR/appdata/mariadb:/config
     ports:
      - 3306:3306
+
+  # Crowdsec to detect attacks
+  crowdsec:
+   <<: *common-keys-core
+   container_name: crowdsec
+   image: crowdsecurity/crowdsec
+   restart: always
+   environment:
+      CROWDSEC_USER: $CROWDSEC_USER
+      CROWDSEC_PASSWORD: $CROWDSEC_PASSWORD
+      CROWDSEC_DB: $CROWDSEC_DB
+      COLLECTIONS: "crowdsecurity/nginx-proxy-manager"
+      <<: *default-tz-puid-pgid
+   depends_on:
+     - 'npm'
+   volumes:
+     - $DOCKERDIR/appdata/crowdsec/acquis.d:/etc/crowdsec/acquis.d
+     - $DOCKERDIR/appdata/npm/data/logs:/var/log/nginx
+     - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec

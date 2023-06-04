@@ -1,0 +1,3 @@
+filename: /car/log/nginx/*.log
+labels:
+  type: apache2
