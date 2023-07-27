@@ -13,13 +13,13 @@ networks:
 
 ########################### EXTENSION FIELDS
 # Helps eliminate repetition of sections
- 
+
 # Common environment values
 x-environment: &default-tz-puid-pgid
   TZ: $TZ
   PUID: $PUID
   PGID: $PGID
- 
+
 # Keys common to some of the core services that we always to automatically restart on failure
 x-common-keys-core: &common-keys-core
   networks:
@@ -27,7 +27,7 @@ x-common-keys-core: &common-keys-core
   security_opt:
     - no-new-privileges:true
   restart: always
- 
+
 # Keys common to some of the dependent services/apps
 x-common-keys-apps: &common-keys-apps
   networks:
@@ -35,7 +35,7 @@ x-common-keys-apps: &common-keys-apps
   security_opt:
     - no-new-privileges:true
   restart: unless-stopped
- 
+
 # Keys common to some of the services in media-services.txt
 x-common-keys-media: &common-keys-media
   networks:
@@ -62,7 +62,7 @@ services:
       - '443:443'
       - '81:81'
     volumes:
-      - $DOCKERDIR/appdata/npm/config:/config 
+      - $DOCKERDIR/appdata/npm/config:/config
       - $DOCKERDIR/appdata/npm/letsencrypt:/etc/letsencrypt
       - $DOCKERDIR/appdata/npm/data:/data
     environment:
@@ -495,17 +495,34 @@ services:
   adguardhome:
     image: adguard/adguardhome
     container_name: adguardhome
-    network_mode: host
     security_opt:
     - no-new-privileges:true
     restart: always
-    # ports:
-      # - 53:53/tcp
-      # - 53:53/udp
-      # - 784:784/udp
-      # - 853:853/tcp
-      # - 3000:3000/tcp
-      # - 80:80/tcp
+    ports:
+      - target: 53
+        published: 53
+        protocol: tcp
+        mode: host
+      - target: 53
+        published: 53
+        protocol: udp
+        mode: host
+      - target: 784
+        published: 784
+        protocol: udp
+        mode: host
+      - target: 853
+        published: 853
+        protocol: tcp
+        mode: host
+      - target: 3000
+        published: 3000
+        protocol: tcp
+        mode: host
+      - target: 80
+        published: 60
+        protocol: tcp
+        mode: ingress
     volumes:
       - $DOCKERDIR/appdata/adguardhome/work:/opt/adguardhome/work
       - $DOCKERDIR/appdata/adguardhome/conf:/opt/adguardhome/conf
@@ -586,3 +603,56 @@ services:
      - $DOCKERDIR/appdata/crowdsec/acquis.d:/etc/crowdsec/acquis.d
      - $DOCKERDIR/appdata/npm/data/logs:/var/log/nginx
      - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
+
+  ############################# Reddit replacements
+  # Reddit replacement Teddit (based on old.reddit)
+  teddit:
+    <<: *common-keys-apps
+    container_name: teddit
+    image: teddit/teddit:latest
+    environment:
+      DOMAIN: old.reddit.$DOMAIN
+      USE_HELMET: true
+      TRUST_PROXY: true
+      REDIS_HOST: teddit-redis
+      <<: *default-tz-puid-pgid
+    ports:
+      - "1111:8080"
+    depends_on:
+      - teddit-redis
+
+  teddit-redis:
+    <<: *common-keys-core
+    container_name: teddit-redis
+    image: redis:6.2.5-alpine
+    command: redis-server
+    environment:
+      REDIS_REPLICATION_MODE: master
+      <<: *default-tz-puid-pgid
+    volumes:
+      - $DOCKERDIR/appdata/teddit-redis:/data
+    labels:
+      - flame.type=app
+      - flame.name=Old Reddit
+      - flame.url=old.reddit.$DOMAIN
+      - flame.icon=sentiment_excited
+
+# Libreddit (based on new UI)
+  libreddit:
+    <<: *common-keys-apps
+    image: libreddit/libreddit:latest
+    container_name: "libreddit"
+    ports:
+      - 1112:8080
+    read_only: true
+    environment:
+      <<: *default-tz-puid-pgid
+      LIBREDDIT_DEFAULT_COMMENT_SORT: top
+      LIBREDDIT_DEFAULT_SHOW_NSFW: "on"
+      LIBREDDIT_DEFAULT_USE_HLS: "on"
+      LIBREDDIT_DEFAULT_SUBSCRIPTIONS: superstonk+tifu+europe+funny+steamdeck+wallstreetbets+MaliciousCompliance+ProRevenge+TheLastAirbender+NatureIsFuckingLit+Instant_regret+todayilearned+nextfuckinglevel+AskReddit+gaming+movies+LifeProTips+pcmasterrace+NetflixBestOf+BikiniBottomTwitter+2westerneurope4u+sipstea+TheNetherlands+Holup+technicallythetruth
+    labels:
+      - flame.type=app
+      - flame.name=adguard
+      - flame.url=reddit.$DOMAIN
+      - flame.icon=sentiment_excited

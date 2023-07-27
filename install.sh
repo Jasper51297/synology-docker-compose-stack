@@ -87,3 +87,6 @@ mkdir -p ${DOCKERDIR}/appdata/metabase
 
 ## Home Assistant
 mkdir -p ${DOCKERDIR}/appdata/homeassistant
+
+## Teddit Redis
+mkdir -p ${DOCKERDIR}/appdata/teddit-redis
