@@ -103,7 +103,7 @@ services:
       - flame.type=app
       - flame.name=metabase
       - flame.url=https://metabase.$DOMAIN
-      - flame.icon=monitoring
+      - flame.icon=monitor-dashboard
 
   homebridge:
     image: homebridge/homebridge:latest
@@ -118,6 +118,11 @@ services:
       options:
         max-size: "10mb"
         max-file: "1"
+    labels:
+      - flame.type=app
+      - flame.name=homebridge
+      - flame.url=https://homebridge.$DOMAIN
+      - flame.icon=access-point
 
   speedtest-tracker:
     <<: *common-keys-apps
@@ -131,6 +136,11 @@ services:
       - $DOCKERDIR/appdata/speedtest-tracker/config:/config
       - $DOCKERDIR/appdata/speedtest-tracker/web:/etc/ssl/web
     image: 'ghcr.io/alexjustesen/speedtest-tracker:latest'
+    labels:
+      - flame.type=app
+      - flame.name=speedtest-tracker
+      - flame.url=https://speedtest.$DOMAIN
+      - flame.icon=car-speed-limiter
 
   # Portainer - WebUI for Containers
   portainer:
@@ -637,6 +647,11 @@ services:
       - "1111:8080"
     depends_on:
       - teddit-redis
+    labels:
+      - flame.type=app
+      - flame.name=old.reddit
+      - flame.url=https://old.reddit.$DOMAIN
+      - flame.icon=reddit
 
   teddit-redis:
     <<: *common-keys-core
@@ -648,11 +663,6 @@ services:
       <<: *default-tz-puid-pgid
     volumes:
       - $DOCKERDIR/appdata/teddit-redis:/data
-    labels:
-      - flame.type=app
-      - flame.name=Old Reddit
-      - flame.url=old.reddit.$DOMAIN
-      - flame.icon=sentiment_excited
 
 # Libreddit (based on new UI)
   libreddit:
@@ -670,6 +680,6 @@ services:
       LIBREDDIT_DEFAULT_SUBSCRIPTIONS: superstonk+tifu+europe+funny+steamdeck+wallstreetbets+MaliciousCompliance+ProRevenge+TheLastAirbender+NatureIsFuckingLit+Instant_regret+todayilearned+nextfuckinglevel+AskReddit+gaming+movies+LifeProTips+pcmasterrace+NetflixBestOf+BikiniBottomTwitter+2westerneurope4u+sipstea+TheNetherlands+Holup+technicallythetruth
     labels:
       - flame.type=app
-      - flame.name=adguard
+      - flame.name=reddit
       - flame.url=reddit.$DOMAIN
-      - flame.icon=sentiment_excited
+      - flame.icon=reddit
