@@ -85,8 +85,12 @@ cp ../crowdsec/npm.yaml ${DOCKERDIR}/appdata/crowdsec/acquis.d/
 ## Metabase
 mkdir -p ${DOCKERDIR}/appdata/metabase
 
-## Home Assistant
-mkdir -p ${DOCKERDIR}/appdata/homeassistant
-
 ## Teddit Redis
 mkdir -p ${DOCKERDIR}/appdata/teddit-redis
+
+## Homebridge
+mkdir -p ${DOCKERDIR}/appdata/homebridge
+
+## Speedtest tracker
+mkdir -p ${DOCKERDIR}/appdata/speedtest-tracker/web
+mkdir -p ${DOCKERDIR}/appdata/speedtest-tracker/config

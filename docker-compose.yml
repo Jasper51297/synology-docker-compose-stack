@@ -105,24 +105,32 @@ services:
       - flame.url=https://metabase.$DOMAIN
       - flame.icon=monitoring
 
-  homeassistant:
-    image: lscr.io/linuxserver/homeassistant:latest
-    container_name: homeassistant
+  homebridge:
+    image: homebridge/homebridge:latest
+    container_name: homebridge
     network_mode: host
     environment:
       <<: *default-tz-puid-pgid
     volumes:
-      - $DOCKERDIR/appdata/homeassistant:/config
-    # ports: # Disabled in network_mode host
-    #   - 8123:8123
-    security_opt:
-    - no-new-privileges:true
-    restart: always
-    labels:
-      - flame.type=app
-      - flame.name=homeassistant
-      - flame.url=https://homeassistant.$DOMAIN
-      - flame.icon=home
+      - $DOCKERDIR/appdata/homebridge:/homebridge
+    logging:
+      driver: json-file
+      options:
+        max-size: "10mb"
+        max-file: "1"
+
+  speedtest-tracker:
+    <<: *common-keys-apps
+    container_name: speedtest-tracker
+    ports:
+      - '8089:80'
+    environment:
+      <<: *default-tz-puid-pgid
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - $DOCKERDIR/appdata/speedtest-tracker/config:/config
+      - $DOCKERDIR/appdata/speedtest-tracker/web:/etc/ssl/web
+    image: 'ghcr.io/alexjustesen/speedtest-tracker:latest'
 
   # Portainer - WebUI for Containers
   portainer:
