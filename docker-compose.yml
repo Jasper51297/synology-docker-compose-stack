@@ -625,7 +625,8 @@ services:
       COLLECTIONS: "crowdsecurity/nginx-proxy-manager"
       <<: *default-tz-puid-pgid
    depends_on:
-     - 'npm'
+     - npm
+     - mariadb
    volumes:
      - $DOCKERDIR/appdata/crowdsec/acquis.d:/etc/crowdsec/acquis.d
      - $DOCKERDIR/appdata/npm/data/logs:/var/log/nginx
@@ -664,7 +665,7 @@ services:
     volumes:
       - $DOCKERDIR/appdata/teddit-redis:/data
 
-# Libreddit (based on new UI)
+  # Libreddit (based on new UI)
   libreddit:
     <<: *common-keys-apps
     image: libreddit/libreddit:latest
@@ -683,3 +684,65 @@ services:
       - flame.name=reddit
       - flame.url=reddit.$DOMAIN
       - flame.icon=reddit
+
+  ############################# Fun stuff
+  # Karaoke
+  karaoke-eternal:
+    <<: *common-keys-apps
+    image: radrootllc/karaoke-eternal:latest
+    container_name: karaoke-eternal
+    volumes:
+      - $DOCKERDIR/appdata/karaoke/config:/config
+      - $DATADIR/storage/media/Karaoke:/mnt/karaoke
+    ports:
+      - 8030:8080
+    labels:
+      - flame.type=app
+      - flame.name=karaoke
+      - flame.url=karaoke.$DOMAIN
+      - flame.icon=microphone
+
+  ############################# Finance
+  # Firefly
+  firefly:
+    <<: *common-keys-apps
+    image: fireflyiii/core:latest
+    container_name: firefly
+    volumes:
+      - $DOCKERDIR/appdata/firefly/upload:/var/www/html/storage/upload
+    ports:
+      - '8010:8080'
+    depends_on:
+      - mariadb
+    environment:
+      <<: *default-tz-puid-pgid
+      APP_KEY: ${FIREFLY_SECRET}
+      DB_CONNECTION: mysql
+      DB_HOST: 192.168.89.160
+      DB_PORT: 3306
+      DB_DATABASE: ${FIREFLY_DB}
+      DB_USERNAME: ${FIREFLY_DB_USER}
+      DB_PASSWORD: ${FIREFLY_DB_PASSWORD}
+    labels:
+      - flame.type=app
+      - flame.name=firefly
+      - flame.url=firefly.$DOMAIN
+      - flame.icon=currency-eur
+
+  # Firefly Importer
+  firefly_importer:
+    <<: *common-keys-apps
+    image: fireflyiii/data-importer:latest
+    container_name: firefly_importer
+    ports:
+      - '8009:8080'
+    environment:
+      <<: *default-tz-puid-pgid
+      FIREFLY_III_URL: https://firefly.${DOMAIN}
+      FIREFLY_III_ACCESS_TOKEN: ${FIREFLY_ACCESS_TOKEN}
+      NORDIGEN_ID: ${FIREFLY_NORDIGEN_ID}
+      NORDIGEN_KEY: ${FIREFLY_NORDIGEN_KEY}
+      AUTO_IMPORT_SECRET: ${FIREFLY_SECRET}
+      CAN_POST_AUTOIMPORT: true
+    depends_on:
+      - firefly

@@ -8,6 +8,7 @@ mkdir -p ${DATADIR}/storage/media/Books
 mkdir -p ${DATADIR}/storage/media/Movies
 mkdir -p ${DATADIR}/storage/media/TV
 mkdir -p ${DATADIR}/storage/media/Music
+mkdir -p ${DATADIR}/storage/media/Karaoke
 mkdir -p ${DATADIR}/storage/downloads/nzb/complete
 mkdir -p ${DATADIR}/storage/downloads/nzb/incomplete
 mkdir -p ${DATADIR}/storage/downloads/torrents/complete
@@ -94,3 +95,9 @@ mkdir -p ${DOCKERDIR}/appdata/homebridge
 ## Speedtest tracker
 mkdir -p ${DOCKERDIR}/appdata/speedtest-tracker/web
 mkdir -p ${DOCKERDIR}/appdata/speedtest-tracker/config
+
+# Karaoke
+mkdir -p ${DOCKERDIR}/appdata/karaoke/config
+
+# Firefly
+mkdir -p ${DOCKERDIR}/appdata/firefly/upload
