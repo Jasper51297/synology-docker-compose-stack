@@ -175,7 +175,21 @@ services:
       - 5005:5005
     environment:
       - PASSWORD=${FLAME_PASSWORD}
-    restart: unless-stopped
+
+  uptime-kuma:
+    <<: *common-keys-core
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    volumes:
+      - $DOCKERDIR/appdata/uptime-kuma:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - 3001:3001
+    labels:
+      - flame.type=app
+      - flame.name=Uptime kuma
+      - flame.url=uptime.$DOMAIN/status/all
+      - flame.icon=access-point-check
 
   ############################# DOWNLOADERS
 
@@ -745,5 +759,53 @@ services:
       NORDIGEN_KEY: ${FIREFLY_NORDIGEN_KEY}
       AUTO_IMPORT_SECRET: ${FIREFLY_SECRET}
       CAN_POST_AUTOIMPORT: true
+      CAN_POST_FILES: true
     depends_on:
       - firefly
+
+  ############################# Meals
+  mealie:
+    <<: *common-keys-apps
+    container_name: mealie
+    image: hkotel/mealie:latest
+    ports:
+      - 9090:80
+    environment:
+      <<: *default-tz-puid-pgid
+      # Database Settings
+      DB_ENGINE: sqlite
+      # Default Recipe Settings
+      RECIPE_PUBLIC: 'true'
+      RECIPE_SHOW_NUTRITION: 'true'
+      RECIPE_SHOW_ASSETS: 'true'
+      RECIPE_LANDSCAPE_VIEW: 'true'
+      RECIPE_DISABLE_COMMENTS: 'true'
+      RECIPE_DISABLE_AMOUNT: 'false'
+    volumes:
+      - ${DOCKERDIR}/appdata/mealie/data:/app/data
+    labels:
+      - flame.type=app
+      - flame.name=Mealie
+      - flame.url=mealie.$DOMAIN
+      - flame.icon=food-variant
+
+  ############################# Privacy friendly search engine
+  whoogle-search:
+    <<: *common-keys-apps
+    image: benbusby/whoogle-search:latest
+    container_name: whoogle-search
+    environment:
+      <<: *default-tz-puid-pgid
+      WHOOGLE_ALT_YT: farside.link/invidious
+      WHOOGLE_ALT_IG: farside.link/bibliogram/u
+      WHOOGLE_ALT_RD: reddit.${DOMAIN}
+      WHOOGLE_ALT_MD: farside.link/scribe
+      WHOOGLE_ALT_IMG: farside.link/rimgo
+      WHOOGLE_ALT_QUORA: farside.link/quetre
+    ports:
+      - 4999:5000
+    labels:
+      - flame.type=app
+      - flame.name=Google
+      - flame.url=google.$DOMAIN
+      - flame.icon=search-web

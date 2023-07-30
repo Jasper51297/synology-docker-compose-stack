@@ -96,8 +96,14 @@ mkdir -p ${DOCKERDIR}/appdata/homebridge
 mkdir -p ${DOCKERDIR}/appdata/speedtest-tracker/web
 mkdir -p ${DOCKERDIR}/appdata/speedtest-tracker/config
 
-# Karaoke
+## Karaoke
 mkdir -p ${DOCKERDIR}/appdata/karaoke/config
 
-# Firefly
+## Firefly
 mkdir -p ${DOCKERDIR}/appdata/firefly/upload
+
+## Uptime kuma
+mkdir -p ${DOCKERDIR}/appdata/uptime-kuma
+
+## Mealie
+mkdir -p ${DOCKERDIR}/appdata/mealie
