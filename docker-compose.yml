@@ -723,6 +723,7 @@ services:
       DB_DATABASE: ${FIREFLY_DB}
       DB_USERNAME: ${FIREFLY_DB_USER}
       DB_PASSWORD: ${FIREFLY_DB_PASSWORD}
+      TRUSTED_PROXIES: "**"
     labels:
       - flame.type=app
       - flame.name=firefly
