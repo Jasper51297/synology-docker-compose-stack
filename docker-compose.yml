@@ -160,7 +160,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=portainer
-      - flame.url=portainer.$DOMAIN
+      - flame.url=https://portainer.$DOMAIN
       - flame.icon=truck-cargo-container
 
   # Flame - UI with all running applications
@@ -188,7 +188,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=Uptime kuma
-      - flame.url=uptime.$DOMAIN/status/all
+      - flame.url=https://uptime.$DOMAIN/status/all
       - flame.icon=access-point-check
 
   ############################# DOWNLOADERS
@@ -212,7 +212,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=sabnzbd
-      - flame.url=sabnzbd.$DOMAIN
+      - flame.url=https://sabnzbd.$DOMAIN
       - flame.icon=cloud-download
 
   # TransmissionBT - Torrent Downloader
@@ -262,7 +262,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=transmission-vpn
-      - flame.url=transmission.$DOMAIN
+      - flame.url=https://transmission.$DOMAIN
       - flame.icon=vpn
 
   ############################# PVRS
@@ -287,7 +287,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=radarr
-      - flame.url=radarr.$DOMAIN
+      - flame.url=https://radarr.$DOMAIN
       - flame.icon=movie-plus
 
   # Sonarr - TV Shows management
@@ -310,7 +310,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=sonarr
-      - flame.url=sonarr.$DOMAIN
+      - flame.url=https://sonarr.$DOMAIN
       - flame.icon=movie-plus-outline
 
   # Readarr - Book management
@@ -329,7 +329,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=sonarr
-      - flame.url=sonarr.$DOMAIN
+      - flame.url=https://sonarr.$DOMAIN
       - flame.icon=bookshelf
 
   # Prowlarr - Indexer Proxy
@@ -350,7 +350,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=prowlarr
-      - flame.url=prowlarr.$DOMAIN
+      - flame.url=https://prowlarr.$DOMAIN
       - flame.icon=cloud-search
 
   # More indexing, specialised for dutch content
@@ -379,7 +379,7 @@ services:
     labels:
     - flame.type=app
     - flame.name=spotweb
-    - flame.url=spotweb.$DOMAIN
+    - flame.url=https://spotweb.$DOMAIN
     - flame.icon=cloud-search
 
   ############################# MEDIA
@@ -402,7 +402,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=airsonic
-      - flame.url=airsonic.$DOMAIN
+      - flame.url=https://airsonic.$DOMAIN
       - flame.icon=music
 
   # Jellyfin - Media Server
@@ -428,7 +428,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=jellyfin
-      - flame.url=jellyfin.$DOMAIN
+      - flame.url=https://jellyfin.$DOMAIN
       - flame.icon=television
 
   ############################# MEDIA FILE MANAGEMENT
@@ -448,7 +448,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=bazarr
-      - flame.url=bazarr.$DOMAIN
+      - flame.url=https://bazarr.$DOMAIN
       - flame.icon=subtitles
 
   # Whisper - Subtitle generation
@@ -483,7 +483,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=ombi
-      - flame.url=ombi.$DOMAIN
+      - flame.url=https://ombi.$DOMAIN
       - flame.icon=file-question-outline
 
   ############################# UTILITIES
@@ -509,7 +509,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=dozzle
-      - flame.url=dozzle.$DOMAIN
+      - flame.url=https://dozzle.$DOMAIN
       - flame.icon=bug
 
   # Visual Studio Code
@@ -529,7 +529,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=vscode
-      - flame.url=vscode.$DOMAIN
+      - flame.url=https://vscode.$DOMAIN
       - flame.icon=file-code
 
   # Ad Guard Home
@@ -570,7 +570,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=adguard
-      - flame.url=adguard.$DOMAIN
+      - flame.url=https://adguard.$DOMAIN
       - flame.icon=dns
 
   # Docker-GC - Automatic Docker Garbage Collection
@@ -696,7 +696,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=reddit
-      - flame.url=reddit.$DOMAIN
+      - flame.url=https://reddit.$DOMAIN
       - flame.icon=reddit
 
   ############################# Fun stuff
@@ -713,7 +713,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=karaoke
-      - flame.url=karaoke.$DOMAIN
+      - flame.url=https://karaoke.$DOMAIN
       - flame.icon=microphone
 
   ############################# Finance
@@ -741,7 +741,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=firefly
-      - flame.url=firefly.$DOMAIN
+      - flame.url=https://firefly.$DOMAIN
       - flame.icon=currency-eur
 
   # Firefly Importer
@@ -786,7 +786,7 @@ services:
     labels:
       - flame.type=app
       - flame.name=Mealie
-      - flame.url=mealie.$DOMAIN
+      - flame.url=https://mealie.$DOMAIN
       - flame.icon=food-variant
 
   ############################# Privacy friendly search engine
@@ -807,5 +807,29 @@ services:
     labels:
       - flame.type=app
       - flame.name=Google
-      - flame.url=google.$DOMAIN
+      - flame.url=https://google.$DOMAIN
       - flame.icon=search-web
+
+  ############################# CRM
+  monica:
+    <<: *common-keys-apps
+    image: monica:latest
+    container_name: monica
+    depends_on:
+      - mariadb
+    ports:
+      - 8011:80
+    environment:
+      <<: *default-tz-puid-pgid
+      APP_KEY: $MONICA_SECRET
+      DB_HOST: 192.168.89.160
+      DB_USERNAME: $MONICA_DB_USER
+      DB_PASSWORD: $MONICA_DB_PASS
+      APP_TRUSTED_PROXIES: "**"
+    volumes:
+      - $DOCKERDIR/appdata/monica:/var/www/html/storage
+    labels:
+      - flame.type=app
+      - flame.name=CRM
+      - flame.url=https://crm.$DOMAIN
+      - flame.icon=account-group

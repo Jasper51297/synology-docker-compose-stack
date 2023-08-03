@@ -107,3 +107,6 @@ mkdir -p ${DOCKERDIR}/appdata/uptime-kuma
 
 ## Mealie
 mkdir -p ${DOCKERDIR}/appdata/mealie
+
+## Monica
+mkdir -p ${DOCKERDIR}/appdata/monica
