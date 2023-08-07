@@ -603,35 +603,58 @@ services:
       npm_proxy:
         ipv4_address: 192.168.89.160
     environment:
-     <<: *default-tz-puid-pgid
-     MYSQL_ROOT_PASSWORD:  ${MYSQL_PASSWORD}
-     MYSQL_DATABASE: ${SPOTWEB_DB}
-     MYSQL_USER: ${SPOTWEB_USER}
-     MYSQL_PASSWORD: ${SPOTWEB_PASSWORD}
+      <<: *default-tz-puid-pgid
+      MYSQL_ROOT_PASSWORD:  ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${SPOTWEB_DB}
+      MYSQL_USER: ${SPOTWEB_USER}
+      MYSQL_PASSWORD: ${SPOTWEB_PASSWORD}
     volumes:
-     - $DOCKERDIR/appdata/mariadb:/config
+      - $DOCKERDIR/appdata/mariadb:/config
     ports:
-     - 3306:3306
+      - 3306:3306
 
   # Crowdsec to detect attacks
   crowdsec:
-   <<: *common-keys-core
-   container_name: crowdsec
-   image: crowdsecurity/crowdsec
-   restart: always
-   environment:
+    <<: *common-keys-core
+    container_name: crowdsec
+    image: crowdsecurity/crowdsec
+    restart: always
+    environment:
       CROWDSEC_USER: $CROWDSEC_USER
       CROWDSEC_PASSWORD: $CROWDSEC_PASSWORD
       CROWDSEC_DB: $CROWDSEC_DB
       COLLECTIONS: "crowdsecurity/nginx-proxy-manager"
       <<: *default-tz-puid-pgid
-   depends_on:
-     - npm
-     - mariadb
-   volumes:
-     - $DOCKERDIR/appdata/crowdsec/acquis.d:/etc/crowdsec/acquis.d
-     - $DOCKERDIR/appdata/npm/data/logs:/var/log/nginx
-     - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
+    depends_on:
+      - npm
+      - mariadb
+    volumes:
+      - $DOCKERDIR/appdata/crowdsec/acquis.d:/etc/crowdsec/acquis.d
+      - $DOCKERDIR/appdata/npm/data/logs:/var/log/nginx
+      - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
+    ports:
+      - 7070:8080
+
+  crowdsec-firewall-bouncer:
+    build:
+      context: crowdsec
+      dockerfile: crowdsec-firewall-bouncer
+    # folder containing the Dockerfile to build
+    container_name: crowdsec-firewall-bouncer
+    restart: always
+    depends_on:
+      - crowdsec
+    environment:
+      <<: *default-tz-puid-pgid
+    cap_add:
+      # allow modification of host's iptable
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: "host"
+    volumes:
+      # https://github.com/crowdsecurity/cs-firewall-bouncer/blob/main/config/crowdsec-firewall-bouncer.yaml
+      - $DOCKERDIR/appdata/crowdsec-firewall-bouncer/crowdsec-firewall-bouncer.yaml:/crowdsec-firewall-bouncer.yaml
+      - $DOCKERDIR/appdata/crowdsec-firewall-bouncer/crowdsec-firewall-bouncer.log:/var/log/crowdsec-firewall-bouncer.log
 
   ############################# Reddit replacements
   # Reddit replacement Teddit (based on old.reddit)

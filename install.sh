@@ -83,6 +83,11 @@ mkdir -p ${DOCKERDIR}/appdata/crowdsec/dashboard
 mkdir -p ${DOCKERDIR}/appdata/crowdsec/acquis.d
 cp ../crowdsec/npm.yaml ${DOCKERDIR}/appdata/crowdsec/acquis.d/
 
+## Crowdsec firewall bouncer
+mkdir -p ${DOCKERDIR}/appdata/crowdsec-firewall-bouncer/
+touch ${DOCKERDIR}/appdata/crowdsec-firewall-bouncer/crowdsec-firewall-bouncer.yaml
+touch ${DOCKERDIR}/appdata/crowdsec-firewall-bouncer/crowdsec-firewall-bouncer.log
+
 ## Metabase
 mkdir -p ${DOCKERDIR}/appdata/metabase
 
