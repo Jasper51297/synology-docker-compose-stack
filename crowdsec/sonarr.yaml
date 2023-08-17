@@ -1,0 +1,4 @@
+filenames:
+ - /var/log/sonarr/sonarr.*
+labels:
+  type: Sonarr

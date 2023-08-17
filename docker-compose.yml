@@ -172,6 +172,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
       - 3001:3001
+    environment:
+      UPTIME_KUMA_HIDE_LOG: debug_monitor,info_monitor
     labels:
       - flame.type=app
       - flame.name=Uptime kuma
@@ -526,6 +528,8 @@ services:
     security_opt:
     - no-new-privileges:true
     restart: always
+    # Unable to specify AGH in network_mode: host due to overlapping ports with NPM
+    # Will thus not be able to resolve client IPs!
     ports:
       - target: 53
         published: 53
@@ -624,13 +628,19 @@ services:
       CROWDSEC_PASSWORD: $CROWDSEC_PASSWORD
       CROWDSEC_DB: $CROWDSEC_DB
       COLLECTIONS: "crowdsecurity/nginx-proxy-manager"
-      <<: *default-tz-puid-pgid
+      TZ: $TZ
     depends_on:
       - npm
       - mariadb
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - $DOCKERDIR/appdata/crowdsec/acquis.d:/etc/crowdsec/acquis.d
-      - $DOCKERDIR/appdata/npm/data/logs:/var/log/nginx
+      - $DOCKERDIR/appdata/npm/data/logs:/var/log/nginx:ro
+      - $DOCKERDIR/appdata/ombi/Logs:/var/log/ombi:ro
+      - $DOCKERDIR/appdata/prowlarr/logs:/var/log/prowlarr:ro
+      - $DOCKERDIR/appdata/radarr/logs:/var/log/radarr:ro
+      - $DOCKERDIR/appdata/sonarr/logs:/var/log/sonarr:ro
+      - /var/log/auth.log:/var/log/dsm/auth.log:ro
       - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
     ports:
       - 7070:8080

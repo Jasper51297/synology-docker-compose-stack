@@ -81,7 +81,7 @@ mkdir -p  ${DOCKERDIR}/appdata/mariadb
 mkdir -p ${DOCKERDIR}/appdata/crowdsec/config
 mkdir -p ${DOCKERDIR}/appdata/crowdsec/dashboard
 mkdir -p ${DOCKERDIR}/appdata/crowdsec/acquis.d
-cp ../crowdsec/npm.yaml ${DOCKERDIR}/appdata/crowdsec/acquis.d/
+cp ../crowdsec/*.yaml ${DOCKERDIR}/appdata/crowdsec/acquis.d/
 
 ## Crowdsec firewall bouncer
 mkdir -p ${DOCKERDIR}/appdata/crowdsec-firewall-bouncer/

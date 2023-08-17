@@ -1,0 +1,4 @@
+filenames:
+ - /var/log/radarr/radarr.*
+labels:
+  type: Radarr

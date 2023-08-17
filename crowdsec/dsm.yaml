@@ -1,0 +1,5 @@
+source: file
+filenames:
+ - /var/log/dsm/auth.log
+labels:
+  type: DSM
