@@ -13,13 +13,13 @@ networks:
 
 ########################### EXTENSION FIELDS
 # Helps eliminate repetition of sections
-
+ 
 # Common environment values
 x-environment: &default-tz-puid-pgid
   TZ: $TZ
   PUID: $PUID
   PGID: $PGID
-
+ 
 # Keys common to some of the core services that we always to automatically restart on failure
 x-common-keys-core: &common-keys-core
   networks:
@@ -27,7 +27,7 @@ x-common-keys-core: &common-keys-core
   security_opt:
     - no-new-privileges:true
   restart: always
-
+ 
 # Keys common to some of the dependent services/apps
 x-common-keys-apps: &common-keys-apps
   networks:
@@ -35,7 +35,7 @@ x-common-keys-apps: &common-keys-apps
   security_opt:
     - no-new-privileges:true
   restart: unless-stopped
-
+ 
 # Keys common to some of the services in media-services.txt
 x-common-keys-media: &common-keys-media
   networks:
@@ -57,7 +57,7 @@ services:
     - no-new-privileges:true
     restart: always
     volumes:
-      - $DOCKERDIR/appdata/npm/config:/config
+      - $DOCKERDIR/appdata/npm/config:/config 
       - $DOCKERDIR/appdata/npm/nginx.conf:/etc/nginx/nginx.conf
       - $DOCKERDIR/appdata/npm/letsencrypt:/etc/letsencrypt
       - $DOCKERDIR/appdata/npm/data:/data
@@ -512,6 +512,9 @@ services:
       SUDO_PASSWORD_HASH: ${VSCODE_SUDO_PASSWORD_HASH}
     volumes:
       - $DOCKERDIR/appdata/code-server:/config
+      - $DOCKERFILE:/config/workspace/docker-compose.yml
+      - $ENVFILE:/config/workspace/.env
+      - $DOCKERDIR/appdata:/config/workspace/appdata
     ports:
       - 8443:8443
     restart: unless-stopped
@@ -646,7 +649,7 @@ services:
       - 7070:8080
 
   crowdsec-firewall-bouncer:
-    build:
+    build: 
       context: crowdsec
       dockerfile: crowdsec-firewall-bouncer
     # folder containing the Dockerfile to build
