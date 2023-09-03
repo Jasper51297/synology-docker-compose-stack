@@ -420,6 +420,34 @@ services:
       - flame.url=https://jellyfin.$DOMAIN
       - flame.icon=television
 
+  # Tdarr server
+  tdarr:
+    <<: *common-keys-media
+    container_name: tdarr
+    image: ghcr.io/haveagitgat/tdarr:latest
+    restart: unless-stopped
+    ports:
+      - 8265:8265 # webUI port
+      - 8266:8266 # server port
+    environment:
+      <<: *default-tz-puid-pgid
+      UMASK_SET: 002
+      serverIP: 0.0.0.0
+      serverPort: 8266
+      webUIPort: 8265
+      inContainer: true
+    volumes:
+      - $DOCKERDIR/appdata/tdarr/server:/app/server
+      - $DOCKERDIR/appdata/tdarr/configs:/app/configs
+      - $DOCKERDIR/appdata/tdarr/logs:/app/logs
+      - $DATADIR/storage/media:/media
+      - $DATADIR/storage/temp/transcode-cache:/temp
+    labels:
+      - flame.type=app
+      - flame.name=tdarr
+      - flame.url=https://tdarr.$DOMAIN
+      - flame.icon=expansion-card
+
   ############################# MEDIA FILE MANAGEMENT
 
   # Bazarr - Subtitle Management
@@ -523,6 +551,33 @@ services:
       - flame.name=vscode
       - flame.url=https://vscode.$DOMAIN
       - flame.icon=file-code
+
+  # Continue
+  continue:
+    <<: *common-keys-apps
+    image: quay.io/go-skynet/local-ai:master-ffmpeg
+    container_name: continue
+    # As initially LocalAI will download the models defined in PRELOAD_MODELS
+    # you might need to tweak the healthcheck values here according to your network connection.
+    # Here we give a timespan of 20m to download all the required files.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8095/readyz"]
+      interval: 1m
+      timeout: 20m
+      retries: 20
+    ports:
+      - 8095:8080
+    environment:
+      <<: *default-tz-puid-pgid
+      DEBUG: true
+      MODELS_PATH: /models
+      THREADS: 2
+      # You can preload different models here as well.
+      # See: https://github.com/go-skynet/model-gallery
+      PRELOAD_MODELS: '[{"url": "github:go-skynet/model-gallery/gpt4all-j.yaml", "name": "gpt-3.5-turbo"}]'
+    volumes:
+      - $DOCKERDIR/appdata/continue/models:/models:cached
+    command: ["/usr/bin/local-ai" ]
 
   # Ad Guard Home
   adguardhome:

@@ -13,6 +13,7 @@ mkdir -p ${DATADIR}/storage/downloads/nzb/complete
 mkdir -p ${DATADIR}/storage/downloads/nzb/incomplete
 mkdir -p ${DATADIR}/storage/downloads/torrents/complete
 mkdir -p ${DATADIR}/storage/downloads/torrents/incomplete
+mkdir -p ${DATADIR}/storage/media/temp/transcode-cache
 
 # Create appdata folders
 ## NPM
@@ -115,3 +116,11 @@ mkdir -p ${DOCKERDIR}/appdata/mealie
 
 ## Monica
 mkdir -p ${DOCKERDIR}/appdata/monica
+
+## Continue
+mkdir -p ${DOCKERDIR}/appdata/continue/models
+
+## Tdarr
+mkdir -p ${DOCKERDIR}/appdata/tdarr/configs
+mkdir -p ${DOCKERDIR}/appdata/tdarr/logs
+mkdir -p ${DOCKERDIR}/appdata/tdarr/server
