@@ -118,11 +118,12 @@ services:
       - '8089:80'
     environment:
       <<: *default-tz-puid-pgid
+      app_key: "$SPEEDTEST_SECRET"
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - $DOCKERDIR/appdata/speedtest-tracker/config:/config
       - $DOCKERDIR/appdata/speedtest-tracker/web:/etc/ssl/web
-    image: 'ghcr.io/alexjustesen/speedtest-tracker:latest'
+    image: 'ghcr.io/alexjustesen/speedtest-tracker:v0.12.2'
     labels:
       - flame.type=app
       - flame.name=speedtest-tracker
@@ -569,11 +570,13 @@ services:
       - 8095:8080
     environment:
       <<: *default-tz-puid-pgid
+      BUILD_TYPE: openblas
       DEBUG: true
       MODELS_PATH: /models
       THREADS: 2
       # You can preload different models here as well.
       # See: https://github.com/go-skynet/model-gallery
+      GALLERIES: '[{"name":"model-gallery", "url":"github:go-skynet/model-gallery/index.yaml"}, {"url": "github:go-skynet/model-gallery/gpt4all-j.yaml","name":"gpt-3.5-turbo"}]'
       PRELOAD_MODELS: '[{"url": "github:go-skynet/model-gallery/gpt4all-j.yaml", "name": "gpt-3.5-turbo"}]'
     volumes:
       - $DOCKERDIR/appdata/continue/models:/models:cached
