@@ -1,5 +1,3 @@
-version: "3.9"
-
 ########################### NETWORKS
 networks:
   default:
@@ -13,13 +11,13 @@ networks:
 
 ########################### EXTENSION FIELDS
 # Helps eliminate repetition of sections
- 
+
 # Common environment values
 x-environment: &default-tz-puid-pgid
   TZ: $TZ
   PUID: $PUID
   PGID: $PGID
- 
+
 # Keys common to some of the core services that we always to automatically restart on failure
 x-common-keys-core: &common-keys-core
   networks:
@@ -27,7 +25,7 @@ x-common-keys-core: &common-keys-core
   security_opt:
     - no-new-privileges:true
   restart: always
- 
+
 # Keys common to some of the dependent services/apps
 x-common-keys-apps: &common-keys-apps
   networks:
@@ -35,7 +33,7 @@ x-common-keys-apps: &common-keys-apps
   security_opt:
     - no-new-privileges:true
   restart: unless-stopped
- 
+
 # Keys common to some of the services in media-services.txt
 x-common-keys-media: &common-keys-media
   networks:
@@ -51,46 +49,24 @@ services:
   # Nginx Proxy Manager - Reverse Proxy with LetsEncrypt
   npm:
     container_name: nginx-proxy-manager
-    image: 'jc21/nginx-proxy-manager:2.10.3'
+    image: 'jc21/nginx-proxy-manager:latest'
     network_mode: "host"
     security_opt:
     - no-new-privileges:true
     restart: always
     volumes:
-      - $DOCKERDIR/appdata/npm/config:/config 
-      - $DOCKERDIR/appdata/npm/nginx.conf:/etc/nginx/nginx.conf
+      #- $DOCKERDIR/appdata/npm/config:/config
+      #- $DOCKERDIR/appdata/npm/nginx.conf:/etc/nginx/nginx.conf
       - $DOCKERDIR/appdata/npm/letsencrypt:/etc/letsencrypt
       - $DOCKERDIR/appdata/npm/data:/data
+      - $DOCKERDIR/appdata/npm/_hsts.conf:/app/templates/_hsts.conf:ro
     environment:
-      DB_SQLITE_FILE: "/config/database.sqlite"
       DISABLE_IPV6: 'true'
     labels:
       - flame.type=app
       - flame.name=nginx proxy manager
       - flame.url=https://npm.$DOMAIN
       - flame.icon=arrow-decision
-
-  # Metabase Dashboard crowdsec info
-  dashboard:
-    <<: *common-keys-apps
-    container_name: metabase
-    image: metabase/metabase
-    ports:
-      - 4000:3000
-    environment:
-      MB_DB_FILE: /data/metabase.db
-      MUID: $PUID
-      MGID: 101
-      <<: *default-tz-puid-pgid
-    depends_on:
-      - 'crowdsec'
-    volumes:
-      - $DOCKERDIR/appdata/metabase:/data
-    labels:
-      - flame.type=app
-      - flame.name=metabase
-      - flame.url=https://metabase.$DOMAIN
-      - flame.icon=monitor-dashboard
 
   homebridge:
     image: homebridge/homebridge:latest
@@ -154,7 +130,7 @@ services:
   # Flame - UI with all running applications
   flame:
     <<: *common-keys-core
-    image: pawelmalak/flame:latest
+    image: ghcr.io/fdarveau/flame:latest
     container_name: flame
     volumes:
       - $DOCKERDIR/appdata/flame/:/app/data
@@ -195,7 +171,7 @@ services:
       - "6789:6789"
     volumes:
       - $DOCKERDIR/appdata/sabnzbd:/config
-      - $DATADIR/storage/downloads:/data/downloads
+      - $DATADIR/downloads:/data/downloads
     environment:
       <<: *default-tz-puid-pgid
       HAS_IPV6: false
@@ -223,7 +199,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - $DOCKERDIR/appdata/transmission-vpn/data:/data
       - $DOCKERDIR/appdata/transmission-vpn/config:/config
-      - $DATADIR/storage/downloads:/data/downloads
+      - $DATADIR/downloads:/data/downloads
     environment:
       <<: *default-tz-puid-pgid
       OPENVPN_PROVIDER: PIA
@@ -269,8 +245,8 @@ services:
       - "7878:7878"
     volumes:
       - $DOCKERDIR/appdata/radarr:/config
-      - $DATADIR/storage/downloads:/data/downloads
-      - $DATADIR/storage/media:/data/media
+      - $DATADIR/downloads:/data/downloads
+      - $DATADIR:/data/media
       - "/etc/localtime:/etc/localtime:ro"
     environment:
       <<: *default-tz-puid-pgid
@@ -292,8 +268,8 @@ services:
       - "8989:8989"
     volumes:
       - $DOCKERDIR/appdata/sonarr:/config
-      - $DATADIR/storage/downloads:/data/downloads
-      - $DATADIR/storage/media:/data/media
+      - $DATADIR/downloads:/data/downloads
+      - $DATADIR:/data/media
       - "/etc/localtime:/etc/localtime:ro"
     environment:
       <<: *default-tz-puid-pgid
@@ -312,8 +288,8 @@ services:
       <<: *default-tz-puid-pgid
     volumes:
       - $DOCKERDIR/appdata/readarr:/config
-      - $DATADIR/storage/downloads:/data/downloads
-      - $DATADIR/storage/media:/data/media
+      - $DATADIR/downloads:/data/downloads
+      - $DATADIR:/data/media
     ports:
       - 5757:8787
     labels:
@@ -385,7 +361,7 @@ services:
       - $DOCKERDIR/appdata/airsonic/podcasts:/data/podcasts
       - $DOCKERDIR/appdata/airsonic/playlists:/data/playlists
       - $DOCKERDIR/appdata/airsonic/config:/config
-      - $DATADIR/storage/media/Music:/data/music
+      - $DATADIR/music:/data/music
     environment:
       <<: *default-tz-puid-pgid
       JAVA_OPTS: '-Dserver.forward-headers-strategy=native' # Optional - if you use a reverse-proxy
@@ -400,8 +376,6 @@ services:
     <<: *common-keys-media
     image: jellyfin/jellyfin:latest
     container_name: jellyfin
-    devices:
-      - /dev/dri:/dev/dri # for harware transcoding
     ports:
       - "8096:8096"
     environment:
@@ -409,17 +383,21 @@ services:
       UMASK_SET: 022
     volumes:
       - $DOCKERDIR/appdata/jellyfin:/config
-      - $DATADIR/storage/temp/appdata/jellyfin/metadata:/config/metadata
-      - $DATADIR/storage/downloads:/data/downloads
-      - $DATADIR/storage/downloads/torrents:/data/downloads/torrents
-      - $DATADIR/storage/media:/data/media
-      - /dev/shm:/data/transcode # Offload transcoding to RAM if you have enough RAM
+#      - $DATADIR/storage/temp/appdata/jellyfin/metadata:/config/metadata
+      - $DATADIR/downloads:/data/downloads
+      - $DATADIR/downloads/torrents:/data/downloads/torrents
+      - $DATADIR:/data/media
+#      - /dev/shm:/data/transcode # Offload transcoding to RAM if you have enough RAM
       - $DOCKERDIR/appdata/jellyfin-web-interface/dist:/jellyfin/jellyfin-web:ro # Only add this if you are using the intro skipper plugin. Instructions can be found in their Github repo
     labels:
       - flame.type=app
       - flame.name=jellyfin
       - flame.url=https://jellyfin.$DOMAIN
       - flame.icon=television
+    group_add:
+      - "993"
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
 
   # Tdarr server
   tdarr:
@@ -441,8 +419,8 @@ services:
       - $DOCKERDIR/appdata/tdarr/server:/app/server
       - $DOCKERDIR/appdata/tdarr/configs:/app/configs
       - $DOCKERDIR/appdata/tdarr/logs:/app/logs
-      - $DATADIR/storage/media:/media
-      - $DATADIR/storage/temp/transcode-cache:/temp
+      - $DATADIR:/media
+      - $DATADIR/transcode-cache:/temp
     labels:
       - flame.type=app
       - flame.name=tdarr
@@ -460,7 +438,7 @@ services:
       - "6767:6767"
     volumes:
       - $DOCKERDIR/appdata/bazarr:/config
-      - $DATADIR/storage/media:/data/media
+      - $DATADIR:/data/media
     environment:
       <<: *default-tz-puid-pgid
     labels:
@@ -517,13 +495,12 @@ services:
       - "8080:8080"
     environment:
       DOZZLE_LEVEL: info
-      DOZZLE_TAILSIZE: 300
       DOZZLE_FILTER: "status=running"
-      DOZZLE_USERNAME: ${DOZZLE_USERNAME}
-      DOZZLE_PASSWORD: ${DOZZLE_PASSWORD}
+      DOZZLE_AUTH_PROVIDER: simple
       # DOZZLE_FILTER: "label=log_me" # limits logs displayed to containers with this label.
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - $DOCKERDIR/appdata/dozzle:/data
     labels:
       - flame.type=app
       - flame.name=dozzle
@@ -536,7 +513,9 @@ services:
     image: lscr.io/linuxserver/code-server:latest
     container_name: code-server
     environment:
-      <<: *default-tz-puid-pgid
+      TZ: $TZ
+      PUID: 0
+      PGID: 0
       HASHED_PASSWORD: ${VSCODE_HASHED_PASSWORD}
       SUDO_PASSWORD_HASH: ${VSCODE_SUDO_PASSWORD_HASH}
     volumes:
@@ -552,35 +531,6 @@ services:
       - flame.name=vscode
       - flame.url=https://vscode.$DOMAIN
       - flame.icon=file-code
-
-  # Continue
-  continue:
-    <<: *common-keys-apps
-    image: quay.io/go-skynet/local-ai:master-ffmpeg
-    container_name: continue
-    # As initially LocalAI will download the models defined in PRELOAD_MODELS
-    # you might need to tweak the healthcheck values here according to your network connection.
-    # Here we give a timespan of 20m to download all the required files.
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8095/readyz"]
-      interval: 1m
-      timeout: 20m
-      retries: 20
-    ports:
-      - 8095:8080
-    environment:
-      <<: *default-tz-puid-pgid
-      BUILD_TYPE: openblas
-      DEBUG: true
-      MODELS_PATH: /models
-      THREADS: 2
-      # You can preload different models here as well.
-      # See: https://github.com/go-skynet/model-gallery
-      GALLERIES: '[{"name":"model-gallery", "url":"github:go-skynet/model-gallery/index.yaml"}, {"url": "github:go-skynet/model-gallery/gpt4all-j.yaml","name":"gpt-3.5-turbo"}]'
-      PRELOAD_MODELS: '[{"url": "github:go-skynet/model-gallery/gpt4all-j.yaml", "name": "gpt-3.5-turbo"}]'
-    volumes:
-      - $DOCKERDIR/appdata/continue/models:/models:cached
-    command: ["/usr/bin/local-ai" ]
 
   # Ad Guard Home
   adguardhome:
@@ -659,6 +609,16 @@ services:
       WATCHTOWER_SCHEDULE: "0 30 12 * * *" # Everyday at 12:30
       DOCKER_API_VERSION: "1.40"
 
+  # ddClient - Dynamic DNS
+  ddclient:
+    <<: *common-keys-core
+    image: lscr.io/linuxserver/ddclient:latest
+    container_name: ddclient
+    environment:
+      <<: *default-tz-puid-pgid
+    volumes:
+      - $DOCKERDIR/appdata/ddclient/config:/config
+
   # Database
   mariadb:
     <<: *common-keys-core
@@ -695,37 +655,16 @@ services:
       - mariadb
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - $DOCKERDIR/appdata/crowdsec/acquis.d:/etc/crowdsec/acquis.d
+      - $DOCKERDIR/appdata/crowdsec/crowdsec-config:/etc/crowdsec/
       - $DOCKERDIR/appdata/npm/data/logs:/var/log/nginx:ro
       - $DOCKERDIR/appdata/ombi/Logs:/var/log/ombi:ro
       - $DOCKERDIR/appdata/prowlarr/logs:/var/log/prowlarr:ro
       - $DOCKERDIR/appdata/radarr/logs:/var/log/radarr:ro
       - $DOCKERDIR/appdata/sonarr/logs:/var/log/sonarr:ro
+      - $DOCKERDIR/appdata/sabnzbd/logs:/var/log/sabnzbd:ro
       - /var/log/auth.log:/var/log/dsm/auth.log:ro
-      - $DOCKERDIR/appdata/crowdsec/config:/etc/crowdsec
     ports:
       - 7070:8080
-
-  crowdsec-firewall-bouncer:
-    build: 
-      context: crowdsec
-      dockerfile: crowdsec-firewall-bouncer
-    # folder containing the Dockerfile to build
-    container_name: crowdsec-firewall-bouncer
-    restart: always
-    depends_on:
-      - crowdsec
-    environment:
-      <<: *default-tz-puid-pgid
-    cap_add:
-      # allow modification of host's iptable
-      - NET_ADMIN
-      - NET_RAW
-    network_mode: "host"
-    volumes:
-      # https://github.com/crowdsecurity/cs-firewall-bouncer/blob/main/config/crowdsec-firewall-bouncer.yaml
-      - $DOCKERDIR/appdata/crowdsec-firewall-bouncer/crowdsec-firewall-bouncer.yaml:/crowdsec-firewall-bouncer.yaml
-      - $DOCKERDIR/appdata/crowdsec-firewall-bouncer/crowdsec-firewall-bouncer.log:/var/log/crowdsec-firewall-bouncer.log
 
   ############################# Reddit replacements
   # Reddit replacement Teddit (based on old.reddit)
@@ -760,20 +699,24 @@ services:
     volumes:
       - $DOCKERDIR/appdata/teddit-redis:/data
 
-  # Libreddit (based on new UI)
-  libreddit:
+  # Redlib (based on new UI)
+  redlib:
     <<: *common-keys-apps
-    image: libreddit/libreddit:latest
-    container_name: "libreddit"
+    image: quay.io/redlib/redlib:latest
+    restart: always
+    container_name: "redlib"
     ports:
       - 1112:8080
+    user: nobody
     read_only: true
     environment:
       <<: *default-tz-puid-pgid
-      LIBREDDIT_DEFAULT_COMMENT_SORT: top
-      LIBREDDIT_DEFAULT_SHOW_NSFW: "on"
-      LIBREDDIT_DEFAULT_USE_HLS: "on"
-      LIBREDDIT_DEFAULT_SUBSCRIPTIONS: superstonk+tifu+europe+funny+steamdeck+wallstreetbets+MaliciousCompliance+ProRevenge+TheLastAirbender+NatureIsFuckingLit+Instant_regret+todayilearned+nextfuckinglevel+AskReddit+gaming+movies+LifeProTips+pcmasterrace+NetflixBestOf+BikiniBottomTwitter+2westerneurope4u+sipstea+TheNetherlands+Holup+technicallythetruth
+      REDLIB_SFW_ONLY: "off"
+      REDLIB_DEFAULT_COMMENT_SORT: "top"
+      REDLIB_DEFAULT_SHOW_NSFW: "on"
+      REDLIB_DEFAULT_USE_HLS: "on"
+      REDLIB_ROBOTS_DISABLE_INDEXING: "off"
+      REDLIB_DEFAULT_SUBSCRIPTIONS: superstonk+selfhosted+BaldursGate3+tifu+europe+funny+steamdeck+wallstreetbets+MaliciousCompliance+ProRevenge+TheLastAirbender+NatureIsFuckingLit+Instant_regret+todayilearned+nextfuckinglevel+AskReddit+gaming+movies+LifeProTips+pcmasterrace+NetflixBestOf+BikiniBottomTwitter+2westerneurope4u+sipstea+TheNetherlands+Holup+technicallythetruth+cats
     labels:
       - flame.type=app
       - flame.name=reddit
@@ -788,7 +731,7 @@ services:
     container_name: karaoke-eternal
     volumes:
       - $DOCKERDIR/appdata/karaoke/config:/config
-      - $DATADIR/storage/media/Karaoke:/mnt/karaoke
+      - $DATADIR/karaoke:/mnt/karaoke
     ports:
       - 8030:8080
     labels:
@@ -850,7 +793,7 @@ services:
     container_name: mealie
     image: hkotel/mealie:latest
     ports:
-      - 9090:80
+      - 9090:9000
     environment:
       <<: *default-tz-puid-pgid
       # Database Settings
@@ -914,3 +857,20 @@ services:
       - flame.name=CRM
       - flame.url=https://crm.$DOMAIN
       - flame.icon=account-group
+
+  ############################# CSM
+  vondelkoor-wp:
+    <<: *common-keys-apps
+    image: wordpress:6.7.0
+    ports:
+      - 8082:80
+    hostname: localhost:8082
+    environment:
+      <<: *default-tz-puid-pgid
+      WORDPRESS_DB_HOST: 192.168.89.160
+      WORDPRESS_DB_USER: vondelkoor-wp
+      WORDPRESS_DB_PASSWORD: $VONDELKOOR_WP_DB_PASS
+      WORDPRESS_DB_NAME: wp-vondelkoor
+    volumes:
+      - $DOCKERDIR/appdata/vondelkoor-wp:/var/www/html
+      - $DOCKERDIR/appdata/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini

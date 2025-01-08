@@ -124,3 +124,6 @@ mkdir -p ${DOCKERDIR}/appdata/continue/models
 mkdir -p ${DOCKERDIR}/appdata/tdarr/configs
 mkdir -p ${DOCKERDIR}/appdata/tdarr/logs
 mkdir -p ${DOCKERDIR}/appdata/tdarr/server
+
+## ddClient
+mkdir -p ${DOCKERDIR}/appdata/ddclient/config
